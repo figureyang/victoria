@@ -1,0 +1,238 @@
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.Writer;
+
+/**
+ * Created by jingfeiyang on 17/2/2.
+ */
+public class VicLandSize3 {
+    public static void main(String[] args) throws Exception{
+
+        String readfile2 = args[0]; //"/Users/jingfeiyang/Desktop/melburne_university/semester4/finalproject_sydney/mingzhaofullvic/two.csv";
+        String writefile2 = args[1];    //"/Users/jingfeiyang/Desktop/melburne_university/semester4/finalproject_sydney/mingzhaofullvic/tworesult.csv";
+
+
+
+        String driver = args[2];
+
+
+
+        Thread thread2 = new VicThread3(readfile2,writefile2,driver);
+
+
+
+        thread2.start();
+
+
+
+    }
+}
+
+class VicThread3 extends Thread
+{
+    public String readfrom;
+    public String writeto;
+
+
+    public String driverPath;
+
+
+    public VicThread3(String readfrom,String writeto, String driverPath)
+    {
+        this.readfrom = readfrom;
+        this.writeto = writeto;
+
+        this.driverPath = driverPath;
+    }
+
+    public void run()
+    {
+        String readDirection = readfrom;
+        String writeDirection = writeto;
+
+
+        ///////////////read part/////////////////////
+
+        try
+        {
+
+
+            WebDriver driver ;
+
+            System.setProperty("webdriver.chrome.driver", driverPath /*"/usr/local/bin/chromedriver"*/);
+
+
+
+            driver = new ChromeDriver();
+
+
+
+
+
+            String nextLine[];
+            CSVReader reader = new CSVReader(new FileReader(readDirection));
+            while((nextLine=reader.readNext())!=null)
+            {
+                String proID = nextLine[0];
+                String proType = nextLine[1];
+                String address = nextLine[2];
+                String area = nextLine[3];
+                String state = nextLine[4];
+                String postcode = nextLine[5];
+                String Lati = nextLine[6];
+                String Lng = nextLine[7];
+                String landSize = nextLine[8];
+                String sizeUnit = nextLine[9];
+
+
+                sizeUnit = "m2";
+                System.out.println(address);
+
+
+
+                String houseAddress = address + " " + area + " " + state;
+
+
+                try
+                {
+
+
+
+
+
+
+                    driver.get("http://www.onthehouse.com.au/");
+
+                    Thread.sleep(5000);
+
+                    WebElement searchInput = driver.findElement(By.id("searchInput"));
+                    searchInput.sendKeys(houseAddress);
+
+
+                    Thread.sleep(1000);
+
+                    WebElement search = driver.findElement(By.id("searchButton"));
+
+                    search.click();
+
+                    Thread.sleep(1000);
+
+                    WebElement geography = driver.findElement(By.xpath("//*[contains(text(), 'GDA94 Geographicals')]"));
+
+                    geography.click();
+
+                    Thread.sleep(1000);
+
+                    WebElement latitude = driver.findElement(By.id("isc_BN"));
+
+                    latitude.sendKeys(Lati);
+
+                    WebElement longitude = driver.findElement(By.id("isc_BR"));
+
+                    longitude.sendKeys(Lng);
+
+                    WebElement searchButton = driver.findElement(By.id("isc_CB"));
+
+                    searchButton.click();
+
+                    Thread.sleep(1000);
+
+                    WebElement identify_Property = driver.findElement(By.name("isc_3Uicon"));
+
+                    identify_Property.click();
+
+                    Thread.sleep(1000);
+
+                    WebElement mainpicture = driver.findElement(By.id("OpenLayers_Layer_Vector_16_svgRoot"));
+
+
+
+                    mainpicture.click();
+
+                    Thread.sleep(3500);
+
+                    String source = driver.getPageSource();
+
+                    try {
+                        String theLandSize = source.substring(source.indexOf("Area:</td><td class=\"formCell\" align=\"left\"><div class=\"staticTextItem\" style=\"white-space:normal\">")+99,source.indexOf("<sup>2</sup>")-1);
+
+                        System.out.println(theLandSize);
+
+                        landSize = theLandSize;
+
+
+
+
+                        ////////////////write part///////////////////////////////////
+
+                        File CSVFile = new File(writeDirection);
+                        Writer fileWriter = new FileWriter(CSVFile, true);
+                        CSVWriter writer = new CSVWriter(fileWriter, ',');
+
+                        String entry[] = {proID,proType,address,area, state, postcode,Lati,Lng, landSize,sizeUnit};
+
+                        writer.writeNext(entry);
+                        writer.close();
+
+                    }
+
+                    catch (Exception e3)
+                    {
+                        e3.printStackTrace();
+                        System.out.println("get information part wrong");
+
+                        File CSVFile = new File(writeDirection);
+                        Writer fileWriter = new FileWriter(CSVFile, true);
+                        CSVWriter writer = new CSVWriter(fileWriter, ',');
+
+                        String entry[] = {proID,proType,address,area, state, postcode,Lati,Lng, landSize,sizeUnit};
+
+                        writer.writeNext(entry);
+                        writer.close();
+
+                    }
+
+
+
+
+
+
+
+                }
+                catch (Exception e2)
+                {
+                    e2.printStackTrace();
+                    System.out.println("crawl informtion part wrong");
+                    File CSVFile = new File(writeDirection);
+                    Writer fileWriter = new FileWriter(CSVFile, true);
+                    CSVWriter writer = new CSVWriter(fileWriter, ',');
+
+                    String entry[] = {proID,proType,address,area, state, postcode,Lati,Lng, landSize,sizeUnit};
+
+                    writer.writeNext(entry);
+                    writer.close();
+                }
+
+
+                driver.quit();
+
+            }
+
+        }
+        catch (Exception e1)
+        {
+            e1.printStackTrace();
+            System.out.println("something wrong with the read part");
+        }
+    }
+}
+
